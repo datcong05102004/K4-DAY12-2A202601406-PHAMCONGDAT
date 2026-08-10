@@ -1,102 +1,92 @@
 # Thông Tin Deploy — Checkpoint 5
 
-> Điền file này sau khi deploy xong. `pytest tests/test_cp5.py` đọc file này
-> để tìm địa chỉ service của bạn và gọi thử.
->
-> **Chỉ ghi TÊN biến môi trường, tuyệt đối không dán giá trị token vào đây.**
-> Repo này công khai — dán token vào là mất token.
-
 ## Thông Tin Học Viên
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo K4-DAY12-...) |
+| Họ và tên | Phạm Công Đạt |
+| Mã học viên | 2A202601406 |
+| Repo | https://github.com/datcong05102004/K4-DAY12-2A202601406-PHAMCONGDAT |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Base URL kiểm tra | `http://localhost:8000` |
+| Platform | Local fallback bằng Docker Compose; nền tảng cloud mục tiêu là Railway |
+| Ngày kiểm tra | 2026-08-10 |
+| Topology | Nginx → 3 replica chat → Redis |
 
-## Biến Môi Trường Đã Set Trên Cloud
+Phiên làm bài này sử dụng phương án local fallback vì chưa thực hiện bước đăng nhập
+và xác minh tài khoản Railway/Render. Stack được build từ cùng Dockerfile production,
+chạy ba replica ứng dụng qua Nginx và dùng chung Redis.
 
-Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
+## Biến Môi Trường
 
-| Biến | Đã set | Ghi chú |
-|------|--------|---------|
-| `PORT` | ✅ | platform tự gán |
-| `API_TOKEN` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
-| `BUCKET_CAPACITY` | ✅ | 10 |
-| `REFILL_PER_MINUTE` | ✅ | 10 |
-| `DAILY_BUDGET_USD` | ✅ | 1.0 |
-| `LOG_LEVEL` | ✅ | INFO |
+Chỉ liệt kê tên và nguồn; không lưu giá trị secret trong repo.
 
-## Lệnh Kiểm Tra
+| Biến | Đã set | Nguồn |
+|------|--------|-------|
+| `PORT` | ✅ | Giá trị mặc định 8000; cloud có thể tự gán |
+| `API_TOKEN` | ✅ | File `.env` cục bộ, không được Git theo dõi |
+| `REDIS_URL` | ✅ | Docker Compose đặt thành Redis nội bộ |
+| `BUCKET_CAPACITY` | ✅ | Cấu hình ứng dụng |
+| `REFILL_PER_MINUTE` | ✅ | Cấu hình ứng dụng |
+| `DAILY_BUDGET_USD` | ✅ | Cấu hình ứng dụng |
+| `LOG_LEVEL` | ✅ | Cấu hình ứng dụng |
+| `LOCAL_FALLBACK` | ✅ | Bật cho bài kiểm tra CP5 cục bộ |
 
-Thay `<URL>` bằng Public URL ở trên:
-
-```bash
-# 1. Liveness — mong đợi 200 {"status":"ok"}
-curl -i <URL>/healthz
-
-# 2. Readiness — mong đợi 200 {"status":"ready"} (đã nối được Redis)
-curl -i <URL>/readyz
-
-# 3. Không có token — mong đợi 401 kèm header WWW-Authenticate
-curl -i -X POST <URL>/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Hello"}'
-
-# 4. Có token — mong đợi 200 kèm câu trả lời
-curl -i -X POST <URL>/chat \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $API_TOKEN" \
-  -H "X-Client-Id: sv-test" \
-  -d '{"message":"Deploy là gì?"}'
-
-# 5. Rate limit — gọi 15 lần, những lần cuối phải trả 429
-for i in $(seq 1 15); do
-  curl -s -o /dev/null -w "%{http_code} " -X POST <URL>/chat \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $API_TOKEN" \
-    -H "X-Client-Id: sv-test" \
-    -d '{"message":"test"}'
-done; echo
-```
+Khi deploy thật lên Railway, cần tạo Redis add-on và đặt `API_TOKEN`, `REDIS_URL`
+trong dashboard. Giá trị không được ghi vào tài liệu hoặc commit vào Git.
 
 ## Kết Quả Chạy Thật
 
-Dán output của các lệnh trên vào đây:
+Stack:
 
+```text
+chat-1   healthy
+chat-2   healthy
+chat-3   healthy
+redis    healthy
+nginx    running tại localhost:8000
 ```
-(điền output)
+
+Kết quả endpoint qua Nginx:
+
+```text
+GET  /healthz                 200
+GET  /readyz                  200
+POST /chat không token        401
+POST /chat có Bearer token    200
+```
+
+Kết quả gọi 15 lần với cùng một client để kiểm tra rate limit:
+
+```text
+200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
+```
+
+Kiểm tra stateless qua ba replica với cùng `X-Client-Id`:
+
+```text
+turns_before: 0 → 2 → 4 → 6 → 8
+```
+
+Log cho thấy cả `chat-1`, `chat-2`, `chat-3` đều nhận request nhưng lịch sử vẫn
+liên tục vì được lưu trong Redis.
+
+## Lệnh Kiểm Tra
+
+```powershell
+docker compose up -d --build --scale chat=3
+docker compose ps
+Invoke-RestMethod http://localhost:8000/healthz
+Invoke-RestMethod http://localhost:8000/readyz
+python -m pytest tests/test_cp5.py -v
 ```
 
 ## Ảnh Chụp Màn Hình
 
-Đặt ảnh trong thư mục `screenshots/`:
-
-- `screenshots/dashboard.png` — trang quản lý service trên platform
-- `screenshots/healthz.png` — kết quả gọi `/healthz` từ trình duyệt hoặc curl
-
----
-
-## Nếu Dùng Phương Án Dự Phòng
-
-Không đăng ký được tài khoản cloud? Vẫn nộp được bài, nhưng CP5 tối đa 60% điểm:
-
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — bộ test sẽ tự chuyển sang kiểm tra
-   `http://localhost:8000`
-5. Ghi rõ lý do không deploy được vào phần dưới đây:
-
-```
-(điền lý do nếu dùng phương án dự phòng, ngược lại xóa mục này)
-```
+Ảnh Docker Desktop hoặc terminal cần được chụp thủ công vào `screenshots/` trước
+khi nộp để thể hiện ba replica healthy và kết quả gọi endpoint. Không chụp hoặc
+đưa giá trị `API_TOKEN` vào ảnh.
