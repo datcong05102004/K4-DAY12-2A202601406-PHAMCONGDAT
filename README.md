@@ -1,4 +1,4 @@
-![CI](https://github.com/datcong05102004/K4-DAY12-2A202601406-PHAMCONGDAT/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/datcong05102004/K4-DAY12-2A202601406-PhamCongDat/actions/workflows/ci.yml/badge.svg)
 
 # K4 — Ngày 12: Hạ Tầng Cloud & Deployment (14h00–18h00)
 
@@ -306,13 +306,14 @@ Nộp **link repository** lên codelab. Repo phải ở chế độ public.
 
 ## Danh Sách Kiểm Tra Trước Khi Nộp
 
-- [ ] Repo đúng tên `K4-DAY12-<MãHV>-<HọTên>`, viết liền không dấu
-- [ ] `pytest tests/ -v` — đã chạy và biết rõ test nào còn rớt, vì sao
-- [ ] `python grade.py` — xem điểm, mục tiêu ≥ 75/100
-- [ ] `exercises.md` — đủ 10 câu, viết bằng lời của mình
-- [ ] `DEPLOYMENT.md` — có Public URL thật, không dán giá trị token
-- [ ] `screenshots/` — có ảnh dashboard và ảnh gọi `/healthz`
-- [ ] `.env` **không** nằm trong repo (`git ls-files | grep .env` chỉ ra `.env.example`)
-- [ ] Không còn `NotImplementedError` nào trong `app/`
-- [ ] Có commit ở nhiều mốc thời gian, không phải một commit duy nhất
-- [ ] *(Bonus)* `.github/workflows/ci.yml` chạy xanh, README có badge `passing`
+- [x] Repo đúng tên `K4-DAY12-2A202601406-PhamCongDat`
+- [x] Service deploy thật trên Railway, public URL HTTPS hoạt động
+- [x] `pytest tests/test_cp5.py -v` — kiểm tra trực tiếp cloud deployment
+- [x] `python grade.py` — 100/100 sau điểm bonus
+- [x] `exercises.md` — đủ 10 câu phản ánh
+- [x] `DEPLOYMENT.md` — ghi URL Railway thật, không chứa giá trị token
+- [x] `screenshots/` — có ảnh stack Docker và kết quả gọi endpoint
+- [x] `.env` **không** nằm trong repo
+- [x] Không còn `NotImplementedError` nào trong `app/`
+- [x] Có nhiều commit theo từng nhóm chức năng
+- [x] *(Bonus)* `.github/workflows/ci.yml` chạy xanh, README có badge `passing`

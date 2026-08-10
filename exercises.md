@@ -31,7 +31,7 @@ nêu **hai** việc bạn làm được với dòng log đó mà `print("đã tr
 không làm được.
 
 > Một dòng tôi thu được là
-> `{"event":"chat_completed","severity":"INFO","client_id":"cp4-scale-check","prompt_tokens":43,"completion_tokens":46,"usd_cost":0.00003405}`.
+> `{"event":"chat_completed","severity":"INFO","ts":"2026-08-10T09:10:29.231517+00:00","client_id":"cp4-scale-check-1786353029","prompt_tokens":43,"completion_tokens":46,"usd_cost":0.00003405}`.
 > Từ log có cấu trúc này, tôi có thể lọc chính xác theo `client_id` để điều tra một
 > người dùng và cộng `usd_cost`/số token để dựng dashboard hoặc cảnh báo. Câu
 > `print("đã trả lời xong")` không chứa các trường ổn định để máy parse và tổng hợp.

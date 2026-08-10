@@ -6,20 +6,20 @@
 |-----|----------|
 | Họ và tên | Phạm Công Đạt |
 | Mã học viên | 2A202601406 |
-| Repo | https://github.com/datcong05102004/K4-DAY12-2A202601406-PHAMCONGDAT |
+| Repo | https://github.com/datcong05102004/K4-DAY12-2A202601406-PhamCongDat |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Base URL kiểm tra | `http://localhost:8000` |
-| Platform | Local fallback bằng Docker Compose; nền tảng cloud mục tiêu là Railway |
+| Base URL kiểm tra | `https://chat-production-6ab9.up.railway.app` |
+| Platform | Railway |
 | Ngày kiểm tra | 2026-08-10 |
-| Topology | Nginx → 3 replica chat → Redis |
+| Topology | Railway public domain → service `chat` → Railway Redis |
 
-Phiên làm bài này sử dụng phương án local fallback vì chưa thực hiện bước đăng nhập
-và xác minh tài khoản Railway/Render. Stack được build từ cùng Dockerfile production,
-chạy ba replica ứng dụng qua Nginx và dùng chung Redis.
+Service được build từ `Dockerfile` multi-stage và deploy thật lên Railway. Redis là
+database service riêng trong cùng project; ứng dụng kết nối qua biến tham chiếu nội bộ
+`REDIS_URL` của Railway.
 
 ## Biến Môi Trường
 
@@ -27,31 +27,30 @@ Chỉ liệt kê tên và nguồn; không lưu giá trị secret trong repo.
 
 | Biến | Đã set | Nguồn |
 |------|--------|-------|
-| `PORT` | ✅ | Giá trị mặc định 8000; cloud có thể tự gán |
-| `API_TOKEN` | ✅ | File `.env` cục bộ, không được Git theo dõi |
-| `REDIS_URL` | ✅ | Docker Compose đặt thành Redis nội bộ |
-| `BUCKET_CAPACITY` | ✅ | Cấu hình ứng dụng |
-| `REFILL_PER_MINUTE` | ✅ | Cấu hình ứng dụng |
-| `DAILY_BUDGET_USD` | ✅ | Cấu hình ứng dụng |
-| `LOG_LEVEL` | ✅ | Cấu hình ứng dụng |
-| `LOCAL_FALLBACK` | ✅ | Bật cho bài kiểm tra CP5 cục bộ |
+| `PORT` | ✅ | Railway tự gán khi chạy container |
+| `API_TOKEN` | ✅ | Railway service variables |
+| `REDIS_URL` | ✅ | Tham chiếu `${{Redis.REDIS_URL}}` trong Railway |
+| `BUCKET_CAPACITY` | ✅ | Railway service variables |
+| `REFILL_PER_MINUTE` | ✅ | Railway service variables |
+| `DAILY_BUDGET_USD` | ✅ | Railway service variables |
+| `LOG_LEVEL` | ✅ | Railway service variables |
+| `LOCAL_FALLBACK` | ✅ | `false` trong `.env` cục bộ để chạy bộ test cloud |
 
-Khi deploy thật lên Railway, cần tạo Redis add-on và đặt `API_TOKEN`, `REDIS_URL`
-trong dashboard. Giá trị không được ghi vào tài liệu hoặc commit vào Git.
+Giá trị secret không được ghi vào tài liệu hoặc commit vào Git. `DEPLOY_API_TOKEN`
+chỉ nằm trong `.env` cục bộ để test request có xác thực và có cùng giá trị với
+`API_TOKEN` trên Railway.
 
 ## Kết Quả Chạy Thật
 
-Stack:
+Trạng thái Railway:
 
 ```text
-chat-1   healthy
-chat-2   healthy
-chat-3   healthy
-redis    healthy
-nginx    running tại localhost:8000
+chat     SUCCESS — health check /healthz đạt
+Redis    SUCCESS — instance đang chạy
+domain   https://chat-production-6ab9.up.railway.app
 ```
 
-Kết quả endpoint qua Nginx:
+Kết quả endpoint qua HTTPS public domain:
 
 ```text
 GET  /healthz                 200
@@ -60,13 +59,13 @@ POST /chat không token        401
 POST /chat có Bearer token    200
 ```
 
-Kết quả gọi 15 lần với cùng một client để kiểm tra rate limit:
+Kết quả rate limit đã được kiểm tra ở stack Docker local:
 
 ```text
 200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
 ```
 
-Kiểm tra stateless qua ba replica với cùng `X-Client-Id`:
+Kiểm tra stateless qua ba replica Docker local với cùng `X-Client-Id`:
 
 ```text
 turns_before: 0 → 2 → 4 → 6 → 8
@@ -78,15 +77,15 @@ liên tục vì được lưu trong Redis.
 ## Lệnh Kiểm Tra
 
 ```powershell
-docker compose up -d --build --scale chat=3
-docker compose ps
-Invoke-RestMethod http://localhost:8000/healthz
-Invoke-RestMethod http://localhost:8000/readyz
+Invoke-RestMethod https://chat-production-6ab9.up.railway.app/healthz
+Invoke-RestMethod https://chat-production-6ab9.up.railway.app/readyz
 python -m pytest tests/test_cp5.py -v
 ```
 
 ## Ảnh Chụp Màn Hình
 
-Ảnh Docker Desktop hoặc terminal cần được chụp thủ công vào `screenshots/` trước
-khi nộp để thể hiện ba replica healthy và kết quả gọi endpoint. Không chụp hoặc
-đưa giá trị `API_TOKEN` vào ảnh.
+Minh chứng stack Docker trước khi deploy được lưu tại
+[`screenshots/local-fallback.png`](screenshots/local-fallback.png). Minh chứng cloud
+gồm [`screenshots/railway-healthz.png`](screenshots/railway-healthz.png) và
+[`screenshots/railway-readyz.png`](screenshots/railway-readyz.png); các ảnh xác nhận
+public URL hoạt động và Redis đã sẵn sàng, không chứa giá trị `API_TOKEN`.
