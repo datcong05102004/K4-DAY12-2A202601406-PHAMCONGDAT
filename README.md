@@ -1,3 +1,5 @@
+![CI](https://github.com/datcong05102004/K4-DAY12-2A202601406-PHAMCONGDAT/actions/workflows/ci.yml/badge.svg)
+
 # K4 — Ngày 12: Hạ Tầng Cloud & Deployment (14h00–18h00)
 
 Đưa một chat service từ `localhost:8000` lên một địa chỉ công khai mà người khác
